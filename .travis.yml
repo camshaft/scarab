@@ -2,6 +2,8 @@ language: elixir
 elixir:
   - 1.0.5
   - 1.2.5
+env:
+  - AWS_ACCESS_KEY_ID=foo AWS_SECRET_ACCESS_KEY=bar
 sudo: false
 before_script:
   - gem install fakes3

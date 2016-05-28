@@ -1,0 +1,11 @@
+language: elixir
+elixir:
+  - 1.0.5
+  - 1.2.5
+sudo: false
+before_script:
+  - gem install fakes3
+  - fakes3 --port 8123 --root .fakes3 &
+addons:
+  hosts:
+    - local.dev

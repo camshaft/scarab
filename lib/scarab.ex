@@ -25,7 +25,7 @@ defmodule Scarab do
       end
 
       def valid_link?(":" <> _), do: false
-      def valid_tag(_), do: true
+      def valid_link?(_), do: true
     end
   end
 

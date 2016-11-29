@@ -70,11 +70,11 @@ defmodule Test.Scarab do
   end
 
   defp gen_namespace() do
-    :crypto.rand_bytes(18)
+    :crypto.strong_rand_bytes(18)
     |> Base.url_encode64()
   end
 
   defp gen_content do
-    :crypto.rand_bytes(20)
+    :crypto.strong_rand_bytes(20)
   end
 end

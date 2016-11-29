@@ -28,7 +28,7 @@ defmodule Scarab.Backend.S3 do
   def delete(obj, %{bucket: bucket} = config) do
     client = config[:client] || ExAws.S3
     obj = resolve_hash(obj)
-    case client.delete_object(bucket, obj) do
+    case request(client.delete_object(bucket, obj)) do
       {:ok, %{status_code: code}} when code in [200, 204] ->
         :ok
       error ->
@@ -38,7 +38,7 @@ defmodule Scarab.Backend.S3 do
 
   defp _get(obj, %{bucket: bucket} = config) do
     client = config[:client] || ExAws.S3
-    case client.get_object(bucket, obj) do
+    case request(client.get_object(bucket, obj)) do
       {:ok, %{body: body, status_code: 200}} ->
         {:ok, body}
       {:ok, %{status_code: 404}} ->
@@ -52,12 +52,19 @@ defmodule Scarab.Backend.S3 do
 
   defp _put(obj, content, %{bucket: bucket} = config, opts) do
     client = config[:client] || ExAws.S3
-    case client.put_object(bucket, obj, content, opts) do
+    case request(client.put_object(bucket, obj, content, opts)) do
       {:ok, %{status_code: 200}} ->
         :ok
       error ->
         error
     end
+  end
+
+  defp request(req) when is_tuple(req) do
+    req
+  end
+  defp request(req) do
+    ExAws.request(req)
   end
 
   defp resolve_hash(<<first :: binary-size(2), second :: binary-size(2), rest :: binary>>) do

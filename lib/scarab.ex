@@ -4,24 +4,81 @@ defmodule Scarab do
     config = opts[:config]
 
     quote do
+      @scarab_backend unquote(backend)
+      @scarab_config unquote(config)
+
       def put(content) do
-        Scarab.put(unquote(backend), content, unquote(config))
+        hash = Scarab.__hash__(content)
+        case __put__(hash, content) do
+          :ok ->
+            {:ok, hash}
+          error ->
+            error
+        end
       end
 
-      def get(hash) do
-        Scarab.get(unquote(backend), hash, unquote(config))
+      def __put__(":" <> hash, content) do
+        @scarab_backend.put(hash, content, @scarab_config)
       end
 
-      def resolve(namespace, ref) do
-        Scarab.resolve(unquote(backend), namespace, ref, unquote(config))
+      def get(":" <> hash) do
+        @scarab_backend.get(hash, @scarab_config)
       end
 
+      def __get_link__(":" <> hash) do
+        @scarab_backend.get(hash, @scarab_config)
+      end
+
+      def resolve(namespace, ref)
+      def resolve(_, ":" <> _ = hash) do
+        get(hash)
+      end
+      def resolve(namespace, link) when is_binary(link) do
+        hash = Scarab.__hash_link__(namespace, link)
+        case __get_link__(hash) do
+          {:ok, ref} ->
+            resolve(namespace, ref)
+          error ->
+            error
+        end
+      end
+
+      def link(namespace, name, ref)
+      def link(_namespace, ":" <> _ = name, _ref) do
+        {:error, {:invalid_link, name}}
+      end
       def link(namespace, name, ref) do
-        Scarab.link(unquote(backend), namespace, name, ref, unquote(config))
+        namespace
+        |> Scarab.__hash_link__(name)
+        |> __link__(ref)
+      end
+
+      def __link__(":" <> hash, ref) do
+        @scarab_backend.link(hash, ref, @scarab_config)
       end
 
       def unlink(namespace, name) do
-        Scarab.unlink(unquote(backend), namespace, name, unquote(config))
+        namespace
+        |> Scarab.__hash_link__(name)
+        |> __unlink__()
+      end
+
+      def __unlink__(":" <> hash) do
+        @scarab_backend.delete(hash, @scarab_config)
+      end
+
+      def purge(namespace, ref)
+      def purge(_, ":" <> hash) do
+        __purge__(hash)
+      end
+      def purge(namespace, link) do
+        namespace
+        |> Scarab.__hash_link__(link)
+        |> __purge__()
+      end
+
+      def __purge__(_hash) do
+        :ok
       end
 
       def valid_link?(":" <> _), do: false
@@ -29,62 +86,15 @@ defmodule Scarab do
     end
   end
 
-  def put(backend, content, config) do
-    hash = hash(content)
-    case put(backend, hash, content, config) do
-      :ok ->
-        {:ok, hash}
-      error ->
-        error
-    end
-  end
-
-  defp put(backend, ":" <> hash, content, config) do
-    backend.put(hash, content, config)
-  end
-
-  def get(backend, ":" <> hash, config) do
-    backend.get(hash, config)
-  end
-
-  def resolve(backend, _, ":" <> _ = hash, config) do
-    get(backend, hash, config)
-  end
-  def resolve(backend, namespace, name, config) when is_binary(name) do
-    hash = hash_link(namespace, name)
-    case get(backend, hash, config) do
-      {:ok, ref} ->
-        resolve(backend, namespace, ref, config)
-      error ->
-        error
-    end
-  end
-  def resolve(_, _, name, _) do
-    name
-  end
-
-  def link(_, _, ":" <> _ = name, _, _) do
-    {:error, {:invalid_tag, name}}
-  end
-  def link(backend, namespace, name, ref, config) do
-    ":" <> hash = hash_link(namespace, name)
-    backend.link(hash, ref, config)
-  end
-
-  def unlink(backend, namespace, name, config) do
-    ":" <> hash = hash_link(namespace, name)
-    backend.delete(hash, config)
-  end
-
-  defp hash(content) do
+  def __hash__(content) do
     hash = :crypto.hash(:sha, content)
     |> Base.url_encode64()
     |> String.replace("=", "")
     ":" <> hash
   end
 
-  def hash_link(namespace, name) do
+  def __hash_link__(namespace, name) do
     [namespace, 0, 0, 0, 0, name]
-    |> hash()
+    |> __hash__()
   end
 end

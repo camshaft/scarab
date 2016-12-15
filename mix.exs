@@ -17,7 +17,8 @@ defmodule Scarab.Mixfile do
   end
 
   defp deps do
-    [{:ex_aws, ">= 0.0.0", optional: true},
+    [{:con_cache, ">= 0.0.0", optional: true},
+     {:ex_aws, ">= 0.0.0", optional: true},
      {:poison, "~> 1.2", only: [:dev, :test]},
      {:httpoison, "~> 0.7", only: [:dev, :test]},
      {:ex_doc, ">= 0.0.0", only: :dev}]

@@ -60,11 +60,15 @@ defmodule Scarab.Backend.S3 do
     end
   end
 
-  defp request(req) when is_tuple(req) do
-    req
-  end
-  defp request(req) do
-    ExAws.request(req)
+  Code.ensure_compiled?(ExAws)
+  if function_exported?(ExAws, :request, 1) do
+    defp request(req) do
+      ExAws.request(req)
+    end
+  else
+    def request(req) do
+      req
+    end
   end
 
   defp resolve_hash(<<first :: binary-size(2), second :: binary-size(2), rest :: binary>>) do

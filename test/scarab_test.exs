@@ -59,10 +59,19 @@ defmodule Test.Scarab do
       use Scarab.Middleware.Cache.ConCache, cache: Test.Scarab
     end
 
+    defmodule ErlangTerm do
+      @path path
+
+      use Scarab, backend: Scarab.Backend.FS,
+        config: %{path: @path}
+
+      use Scarab.Middleware.Transform.ErlangTerm, [:compressed]
+    end
+
     :ok
   end
 
-  for backend <- [FS, S3, FSCache, CCache, CCacheNoLink, MultiCache] do
+  for backend <- [FS, S3, FSCache, CCache, CCacheNoLink, MultiCache, ErlangTerm] do
     impl = Module.concat(__MODULE__, backend)
 
     test "#{inspect(backend)} - Repo.put(content)" do
@@ -124,6 +133,18 @@ defmodule Test.Scarab do
       assert :ok = impl.link(namespace, name, hash2)
       assert {:ok, ^content2} = impl.resolve(namespace, name)
     end
+  end
+
+  test "ErlangTerm serialization" do
+    alias __MODULE__.ErlangTerm
+
+    content = %{
+      name: "Joe",
+      hobbies: ["programming"]
+    }
+
+    {:ok, hash} = ErlangTerm.put(content)
+    {:ok, ^content} = ErlangTerm.get(hash)
   end
 
   defp gen_namespace() do
